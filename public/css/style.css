@@ -10,32 +10,27 @@
 
 * {
     box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background-color: #f0f2f5;
     margin: 0;
     padding: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: #f0f2f5;
     line-height: 1.5;
 }
 
 .chat-container {
-    width: 98%;
-    max-width: 900px;
-    height: 95vh;
+    width: 100%;
+    height: 100%;
     background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
+/* 优化顶部区域 - 适配移动端 */
 .chat-header {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
@@ -44,18 +39,21 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
 }
 
 .chat-header h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 600;
+    padding-top: env(safe-area-inset-top); /* 适配iPhone刘海屏 */
 }
 
 .header-controls {
     display: flex;
     align-items: center;
     gap: 16px;
+    padding-top: env(safe-area-inset-top); /* 适配iPhone刘海屏 */
 }
 
 .clear-btn {
@@ -73,15 +71,6 @@ body {
     height: 36px;
 }
 
-.clear-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.05);
-}
-
-.clear-btn:active {
-    transform: scale(0.95);
-}
-
 .user-info {
     background-color: rgba(255, 255, 255, 0.2);
     padding: 6px 14px;
@@ -91,66 +80,55 @@ body {
     letter-spacing: 0.25px;
 }
 
+/* 消息区域适配移动端 */
 .chat-messages {
     flex: 1;
-    padding: 20px;
+    padding: 15px;
     overflow-y: auto;
     background-color: var(--light-color);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    padding-bottom: env(safe-area-inset-bottom); /* 适配底部安全区域 */
 }
 
+/* 输入区域适配移动端 */
 .chat-input {
     display: flex;
-    padding: 16px;
+    padding: 12px 16px;
     background-color: white;
     border-top: 1px solid var(--gray-light);
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
+    position: relative;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* 适配底部安全区域 */
 }
 
 .chat-input input {
     flex: 1;
-    padding: 14px 20px;
+    padding: 12px 18px;
     border: 1px solid #ddd;
     border-radius: 30px;
     outline: none;
-    font-size: 1.05rem;
+    font-size: 1rem;
     transition: border-color 0.2s;
 }
 
-.chat-input input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-}
-
 .chat-input button {
-    margin-left: 12px;
-    padding: 12px 28px;
+    margin-left: 10px;
+    padding: 12px 24px;
     background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     color: white;
     border: none;
     border-radius: 30px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 1.05rem;
-    transition: all 0.2s;
-    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2);
+    font-size: 1rem;
+    min-width: 80px;
 }
 
-.chat-input button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(67, 97, 238, 0.25);
-}
-
-.chat-input button:active {
-    transform: translateY(0);
-}
-
-/* Message styling */
+/* 消息样式优化 */
 .message {
     margin-bottom: 8px;
-    max-width: 85%;
+    max-width: 90%;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -160,30 +138,31 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     padding: 0 4px;
 }
 
 .sender-name {
     font-weight: 600;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     color: var(--dark-color);
 }
 
 .message-time {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--gray-medium);
-    margin-left: 10px;
+    margin-left: 8px;
 }
 
 .message-content {
-    padding: 14px 18px;
+    padding: 12px 16px;
     border-radius: 18px;
     word-wrap: break-word;
     word-break: break-word;
     overflow-wrap: anywhere;
     line-height: 1.5;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 100%; /* 确保消息内容不会溢出 */
 }
 
 .message.sent {
@@ -210,22 +189,23 @@ body {
 
 .message.system {
     align-self: center;
-    max-width: 90%;
+    max-width: 95%;
+    text-align: center;
 }
 
 .message.system .message-content {
     background-color: var(--success-color);
     color: white;
     font-style: italic;
-    padding: 10px 20px;
-    text-align: center;
+    padding: 8px 16px;
+    font-size: 0.9rem;
 }
 
-/* Copy button styling */
+/* 复制按钮位置优化 */
 .copy-container {
     position: absolute;
     top: 0;
-    right: -32px;
+    right: -28px;
     height: 100%;
     display: flex;
     align-items: flex-start;
@@ -234,7 +214,7 @@ body {
 
 .message.received .copy-container {
     right: auto;
-    left: -32px;
+    left: -28px;
 }
 
 .copy-button {
@@ -242,27 +222,18 @@ body {
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 1.1rem;
-    width: 28px;
-    height: 28px;
+    font-size: 0.9rem;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     color: var(--dark-color);
 }
 
-.copy-button:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-.copy-button:active {
-    transform: scale(0.95);
-}
-
-/* Notification styling */
+/* 通知位置优化 */
 .copy-notification {
     position: fixed;
     bottom: 20px;
@@ -270,14 +241,16 @@ body {
     transform: translateX(-50%);
     background-color: rgba(0, 0, 0, 0.85);
     color: white;
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 30px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     z-index: 1000;
     white-space: nowrap;
     animation: fadeInOut 2s ease-in-out forwards;
     opacity: 0;
+    max-width: 90%;
+    text-align: center;
 }
 
 @keyframes fadeInOut {
@@ -291,54 +264,117 @@ body {
     }
 }
 
-/* Scrollbar styling */
+/* 滚动条优化 */
 .chat-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 4px;
+    width: 6px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
-.chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
-}
-
-/* Responsive adjustments */
+/* 移动端特定优化 */
 @media (max-width: 768px) {
-    .chat-container {
-        width: 100%;
-        height: 100vh;
-        border-radius: 0;
-    }
-    
-    .message {
-        max-width: 90%;
-    }
-    
     .chat-header {
-        padding: 14px 16px;
+        padding: 12px 16px;
+        padding-top: calc(12px + env(safe-area-inset-top));
     }
     
     .chat-header h1 {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+    }
+    
+    .user-info {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+    }
+    
+    .chat-messages {
+        padding: 12px;
+        padding-bottom: env(safe-area-inset-bottom);
     }
     
     .chat-input {
-        padding: 12px;
+        padding: 10px 14px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
     }
     
     .chat-input input {
-        padding: 12px 16px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
     }
     
     .chat-input button {
-        padding: 10px 20px;
+        padding: 10px 18px;
+        font-size: 0.95rem;
+        min-width: 70px;
+    }
+    
+    .message {
+        max-width: 85%;
+    }
+    
+    .message-content {
+        padding: 10px 14px;
+        font-size: 0.95rem;
+    }
+    
+    .sender-name {
+        font-size: 0.85rem;
+    }
+    
+    .message-time {
+        font-size: 0.7rem;
+    }
+    
+    .copy-container {
+        right: -26px;
+    }
+    
+    .message.received .copy-container {
+        left: -26px;
+    }
+    
+    .copy-button {
+        width: 24px;
+        height: 24px;
+        font-size: 0.85rem;
+    }
+}
+
+/* 针对小屏幕手机的额外优化 */
+@media (max-width: 480px) {
+    .chat-header h1 {
+        font-size: 1.1rem;
+    }
+    
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .header-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .chat-input {
+        flex-wrap: wrap;
+    }
+    
+    .chat-input input {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .chat-input button {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .message {
+        max-width: 80%;
     }
 }
