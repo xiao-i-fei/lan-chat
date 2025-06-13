@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const messageHistory = []; // 存储历史消息
 const MAX_HISTORY = 50; // 最大历史消息数
-const CLEAR_INTERVAL = 60 * 1000; // 1分钟清空一次
+const CLEAR_INTERVAL = 5 * 60 * 1000; // 5分钟清空一次
 
 // 定时清空消息
 setInterval(() => {
