@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 添加复制按钮
             const copyButton = document.createElement('button');
             copyButton.classList.add('copy-button');
-            copyButton.innerHTML = '⎘';
+            copyButton.innerHTML = '📋';
             copyButton.title = '复制消息';
             copyButton.addEventListener('click', () => {
                 const textToCopy = message.text;

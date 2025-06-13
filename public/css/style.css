@@ -203,9 +203,9 @@ html, body {
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 0.9rem;
-    width: 26px;
-    height: 26px;
+    font-size: 1.1rem;
+    width: 35px;
+    height: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
