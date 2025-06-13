@@ -1,15 +1,15 @@
-
-version: '3.8'
-
 services:
-  chat-app:
-    build: ./
-    container_name: local-chat
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
+  chat:
+    build:
+      context: ./  # 指定 Dockerfile 所在目录
+      dockerfile: Dockerfile  # 显式指定文件名（可选）
+    image: chat:1.0  # 自定义镜像名称和标签
+    container_name: chat
+    restart: unless-stopped  # 自动重启策略
+    # ports:
+    #   - "3000:3000"  # 暴露容器端口（与 Dockerfile 中的 EXPOSE 一致）
+    networks:
+      - xiaofei-net  # 共享自定义网络
+
+networks:
+  xiaofei-net:
