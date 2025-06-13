@@ -1,0 +1,15 @@
+
+version: '3.8'
+
+services:
+  chat-app:
+    build: ./
+    container_name: local-chat
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
