@@ -11,41 +11,130 @@ document.addEventListener('DOMContentLoaded', () => {
     usernameDisplay.textContent = username;
 
     // 创建WebSocket连接
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    let socket;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
 
-    socket.onopen = () => {
-        console.log('WebSocket连接已建立');
-    };
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+        
+        socket.onopen = () => {
+            console.log('WebSocket连接已建立');
+            reconnectAttempts = 0;
+            showConnectionStatus('connected');
+        };
 
-    socket.onmessage = async (event) => {
-        let data = event.data;
-        if (data instanceof Blob) {
-            data = await data.text();
-        }
-        try {
-            const payload = JSON.parse(data);
-            if (payload.type === 'history') {
-                // 处理历史消息
-                payload.messages.forEach(message => {
-                    displayMessage(message);
-                });
-            } else if (payload.type === 'message') {
-                // 处理实时消息
-                displayMessage(payload);
-            } else if (payload.type === 'system' && payload.text.includes('清空')) {
-                // 处理清空系统通知
-                messagesContainer.innerHTML = '';
-                displayMessage(payload);
+        socket.onerror = (error) => {
+            console.error('WebSocket错误:', error);
+            showConnectionStatus('error');
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket连接已关闭');
+            showConnectionStatus('disconnected');
+            
+            // 自动重连机制
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                const delay = Math.min(3000, 500 * Math.pow(2, reconnectAttempts));
+                console.log(`将在 ${delay}ms 后尝试重连...`);
+                setTimeout(connectWebSocket, delay);
+                reconnectAttempts++;
             }
-        } catch (error) {
-            console.error('消息解析错误:', error);
-        }
-    };
+        };
 
-    socket.onclose = () => {
-        console.log('WebSocket连接已关闭');
-    };
+        socket.onmessage = async (event) => {
+            let data = event.data;
+            if (data instanceof Blob) {
+                data = await data.text();
+            }
+            try {
+                const payload = JSON.parse(data);
+                if (payload.type === 'history') {
+                    // 处理历史消息
+                    payload.messages.forEach(message => {
+                        displayMessage(message);
+                    });
+                } else if (payload.type === 'message') {
+                    // 处理实时消息
+                    displayMessage(payload);
+                } else if (payload.type === 'system' && payload.text.includes('清空')) {
+                    // 处理清空系统通知
+                    messagesContainer.innerHTML = '';
+                    displayMessage(payload);
+                }
+            } catch (error) {
+                console.error('消息解析错误:', error);
+            }
+        };
+    }
+
+    // 显示连接状态
+    function showConnectionStatus(status) {
+        const statusElement = document.getElementById('connectionStatus');
+        if (!statusElement) return;
+        
+        statusElement.textContent = {
+            connected: '✓ 已连接',
+            disconnected: '⚠ 连接断开',
+            error: '⚠ 连接错误'
+        }[status] || '';
+        
+        statusElement.className = `connection-status ${status}`;
+    }
+
+    // 创建状态显示元素
+    function createStatusElement() {
+        const statusEl = document.createElement('div');
+        statusEl.id = 'connectionStatus';
+        statusEl.className = 'connection-status';
+        document.querySelector('.header-controls').prepend(statusEl);
+    }
+
+    // 优化复制功能
+    function copyToClipboard(text) {
+        return new Promise((resolve, reject) => {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(resolve).catch(reject);
+            } else {
+                // 兼容旧浏览器
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                document.body.appendChild(textarea);
+                textarea.select();
+                
+                try {
+                    document.execCommand('copy') ? resolve() : reject();
+                } catch (err) {
+                    reject(err);
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+        });
+    }
+
+    // 显示通知（优化位置和动画）
+    function showNotification(message) {
+        const existing = document.querySelector('.copy-notification');
+        if (existing) existing.remove();
+        
+        const notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // 自动消失
+        setTimeout(() => {
+            notification.style.animation = 'fadeInOut 0.5s ease-in-out forwards';
+            setTimeout(() => notification.remove(), 500);
+        }, 1500);
+    }
+
+    // 初始化时创建状态元素
+    createStatusElement();
+    connectWebSocket();
 
     function displayMessage(message) {
         const messageElement = document.createElement('div');
@@ -73,74 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             copyButton.innerHTML = '📋';
             copyButton.title = '复制消息';
             copyButton.addEventListener('click', () => {
-                const textToCopy = message.text;
-                
-                // 兼容性处理
-                const copyToClipboard = (text) => {
-                    if (navigator.clipboard) {
-                        return navigator.clipboard.writeText(text)
-                            .catch(err => {
-                                // 如果clipboard API失败，使用备用方法
-                                return execCommandCopy(text);
-                            });
-                    } else {
-                        return execCommandCopy(text);
-                    }
-                };
-
-                // 备用复制方法
-                const execCommandCopy = (text) => {
-                    return new Promise((resolve, reject) => {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = text;
-                        textarea.style.position = 'fixed';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        
-                        try {
-                            const successful = document.execCommand('copy');
-                            if (successful) {
-                                resolve();
-                            } else {
-                                reject(new Error('复制失败'));
-                            }
-                        } catch (err) {
-                            reject(err);
-                        } finally {
-                            document.body.removeChild(textarea);
-                        }
-                    });
-                };
-
-                copyToClipboard(textToCopy)
-                    .then(() => {
-                        console.log('复制成功，准备显示通知');
-                        
-                        // 移除之前的通知（如果有）
-                        const oldNotification = messageElement.querySelector('.copy-notification');
-                        if (oldNotification) {
-                            console.log('移除旧通知');
-                            oldNotification.remove();
-                        }
-                        
-                        const notification = document.createElement('div');
-                        notification.classList.add('copy-notification');
-                        notification.textContent = '已复制到剪贴板';
-                        
-                        // 确保通知添加到正确位置
-                        const messageContent = messageElement.querySelector('.message-content');
-                        messageElement.insertBefore(notification, messageContent.nextSibling);
-                        console.log('通知已添加到DOM', notification);
-                        
-                        // 动画结束后自动移除
-                        notification.addEventListener('animationend', () => {
-                            console.log('通知动画结束，移除通知');
-                            notification.remove();
-                        });
-                    })
+                copyToClipboard(message.text)
+                    .then(() => showNotification('已复制到剪贴板'))
                     .catch(err => {
                         console.error('复制失败:', err);
-                        alert('复制失败，请手动选择文本复制');
+                        showNotification('复制失败，请手动选择文本');
                     });
             });
 

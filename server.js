@@ -9,6 +9,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const messageHistory = []; // 存储历史消息
 const MAX_HISTORY = 50; // 最大历史消息数
+const MAX_MESSAGE_LENGTH = 1000; // 单条消息最大长度
 const CLEAR_INTERVAL = 5 * 60 * 1000; // 5分钟清空一次
 
 // 定时清空消息
@@ -29,6 +30,10 @@ app.get('/', (req, res) => {
 wss.on('connection', (ws) => {
     console.log('新客户端已连接');
     
+    // 添加连接状态监听
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+
     // 发送历史消息给新连接
     if (messageHistory.length > 0) {
         ws.send(JSON.stringify({
@@ -38,6 +43,16 @@ wss.on('connection', (ws) => {
     }
 
     ws.on('message', (message) => {
+        // 验证消息长度
+        if (message.length > MAX_MESSAGE_LENGTH) {
+            console.warn('消息过长被拒绝:', message.length);
+            ws.send(JSON.stringify({
+                type: 'system',
+                text: '消息过长(超过1000字符)'
+            }));
+            return;
+        }
+
         // 解析并存储消息
         let parsedMessage;
         try {
@@ -86,17 +101,35 @@ server.listen(PORT, () => {
     console.log(`局域网内其他设备可通过您的IP地址访问: http://${getLocalIP()}:${PORT}`);
 });
 
-// 获取本地IP地址
+// 心跳检测防止僵尸连接
+const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (!ws.isAlive) {
+            console.log('检测到无响应客户端，终止连接');
+            return ws.terminate();
+        }
+        ws.isAlive = false;
+        ws.ping(); // 仅调用无参数的ping方法
+    });
+}, 30000);
+
+// 获取本地IP地址（兼容IPv6）
 function getLocalIP() {
     const interfaces = require('os').networkInterfaces();
+    const ips = [];
+    
     for (const devName in interfaces) {
         const iface = interfaces[devName];
-        for (let i = 0; i < iface.length; i++) {
-            const alias = iface[i];
-            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                return alias.address;
+        for (const alias of iface) {
+            if (alias.family === 'IPv4' && !alias.internal) {
+                ips.push(alias.address);
+            }
+            // 添加IPv6支持
+            if (alias.family === 'IPv6' && alias.scopeid === 0 && !alias.internal) {
+                ips.push(`[${alias.address}]`);
             }
         }
     }
-    return 'localhost';
+    
+    return ips.length > 0 ? ips.join(', ') : 'localhost';
 }
