@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const messageHistory = []; // 存储历史消息
 const MAX_HISTORY = 50; // 最大历史消息数
-const MAX_MESSAGE_LENGTH = 10000; // 单条消息最大长度
+const MAX_MESSAGE_LENGTH = 20000; // 单条消息最大长度
 const CLEAR_INTERVAL = 5 * 60 * 1000; // 5分钟清空一次
 
 // 定时清空消息
@@ -62,11 +62,15 @@ wss.on('connection', (ws) => {
         }
 
         try {
+            // 如果消息没有ID，生成一个唯一ID
+            if (!parsedMessage.id) {
+                parsedMessage.id = `msg-${Date.now()}-${Math.random()}`;
+            }
+                    
             parsedMessage.timestamp = new Date().toISOString();
-            parsedMessage.id = `${parsedMessage.timestamp}-${Math.random()}`; // 添加唯一ID
             messageHistory.push(parsedMessage);
             
-            // 广播消息给所有客户端
+            // 广播消息给所有客户端（包括发送者）
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({

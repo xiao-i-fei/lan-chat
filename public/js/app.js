@@ -55,19 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (payload.type === 'history') {
                     // 处理历史消息
                     payload.messages.forEach(message => {
-                        displayMessage(message);
+                        displayMessage(message, false); // 历史消息不需要去重检查
                     });
                 } else if (payload.type === 'message') {
                     // 处理实时消息
-                    displayMessage(payload);
+                    displayMessage(payload, true); // 需要去重检查
                 } else if (payload.type === 'system' && payload.text.includes('清空')) {
                     // 处理清空系统通知
                     messagesContainer.innerHTML = '';
                     displayedMessageIds.clear();
-                    displayMessage(payload);
+                    displayMessage(payload, false);
                 } else if (payload.type === 'system') {
                     // 处理其他系统消息
-                    displayMessage(payload);
+                    displayMessage(payload, false);
                 }
             } catch (error) {
                 console.error('消息解析错误:', error);
@@ -142,9 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
     createStatusElement();
     connectWebSocket();
 
-    function displayMessage(message) {
-        // 检查是否是重复消息（对于非系统消息）
-        if (message.type === 'message') {
+    function displayMessage(message, checkDuplicate = true) {
+        // 检查是否需要去重以及是否是重复消息
+        if (checkDuplicate) {
             // 使用消息ID进行去重（如果存在）
             if (message.id && displayedMessageIds.has(message.id)) {
                 return;
@@ -218,24 +218,22 @@ document.addEventListener('DOMContentLoaded', () => {
             displayMessage({
                 type: 'system',
                 text: '清空聊天记录失败: ' + error.message
-            });
+            }, false);
         }
     }
 
     function sendMessage() {
         const text = messageInput.value.trim();
         if (text && socket.readyState === WebSocket.OPEN) {
+            const tempId = `temp-${Date.now()}-${Math.random()}`;
             const message = {
                 sender: username,
                 text: text,  // 保留原始文本包括换行符
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                id: tempId
             };
+            
             socket.send(JSON.stringify(message));
-            // 立即在本地显示发送的消息
-            displayMessage({
-                type: 'message',
-                ...message
-            });
             messageInput.value = '';
         }
     }
