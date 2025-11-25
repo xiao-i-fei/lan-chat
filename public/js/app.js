@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
@@ -14,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let socket;
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 5;
+    
+    // 用于跟踪已显示的消息，避免重复显示
+    const displayedMessageIds = new Set();
 
     function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -61,6 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (payload.type === 'system' && payload.text.includes('清空')) {
                     // 处理清空系统通知
                     messagesContainer.innerHTML = '';
+                    displayedMessageIds.clear();
+                    displayMessage(payload);
+                } else if (payload.type === 'system') {
+                    // 处理其他系统消息
                     displayMessage(payload);
                 }
             } catch (error) {
@@ -137,6 +143,25 @@ document.addEventListener('DOMContentLoaded', () => {
     connectWebSocket();
 
     function displayMessage(message) {
+        // 检查是否是重复消息（对于非系统消息）
+        if (message.type === 'message') {
+            // 使用消息ID进行去重（如果存在）
+            if (message.id && displayedMessageIds.has(message.id)) {
+                return;
+            }
+            
+            // 如果没有ID，则使用发送者、时间戳和内容生成唯一标识
+            if (!message.id) {
+                const messageId = `${message.sender}-${message.timestamp}-${message.text}`;
+                if (displayedMessageIds.has(messageId)) {
+                    return;
+                }
+                displayedMessageIds.add(messageId);
+            } else {
+                displayedMessageIds.add(message.id);
+            }
+        }
+        
         const messageElement = document.createElement('div');
         messageElement.classList.add('message');
         
@@ -154,7 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const messageContent = document.createElement('div');
             messageContent.classList.add('message-content');
-            messageContent.textContent = message.text;
+            // 使用 innerText 保留换行和空白字符
+            messageContent.innerText = message.text;
 
             // 添加复制按钮
             const copyButton = document.createElement('button');
@@ -201,10 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text && socket.readyState === WebSocket.OPEN) {
             const message = {
                 sender: username,
-                text: text,
+                text: text,  // 保留原始文本包括换行符
                 timestamp: new Date().toISOString()
             };
             socket.send(JSON.stringify(message));
+            // 立即在本地显示发送的消息
+            displayMessage({
+                type: 'message',
+                ...message
+            });
             messageInput.value = '';
         }
     }
@@ -212,7 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', sendMessage);
     clearButton.addEventListener('click', clearMessages);
     messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+        // Ctrl+Enter 或 Cmd+Enter 发送消息
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             sendMessage();
         }
     });

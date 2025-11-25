@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -9,7 +8,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const messageHistory = []; // 存储历史消息
 const MAX_HISTORY = 50; // 最大历史消息数
-const MAX_MESSAGE_LENGTH = 1000; // 单条消息最大长度
+const MAX_MESSAGE_LENGTH = 10000; // 单条消息最大长度
 const CLEAR_INTERVAL = 5 * 60 * 1000; // 5分钟清空一次
 
 // 定时清空消息
@@ -43,9 +42,18 @@ wss.on('connection', (ws) => {
     }
 
     ws.on('message', (message) => {
-        // 验证消息长度
-        if (message.length > MAX_MESSAGE_LENGTH) {
-            console.warn('消息过长被拒绝:', message.length);
+        // 验证消息长度（需要先解析消息获取文本内容）
+        let parsedMessage;
+        try {
+            parsedMessage = JSON.parse(message);
+        } catch (error) {
+            console.error('消息解析错误:', error);
+            return;
+        }
+        
+        // 检查文本内容长度
+        if (parsedMessage.text && parsedMessage.text.length > MAX_MESSAGE_LENGTH) {
+            console.warn('消息过长被拒绝:', parsedMessage.text.length);
             ws.send(JSON.stringify({
                 type: 'system',
                 text: '消息过长(超过1000字符)'
@@ -53,11 +61,9 @@ wss.on('connection', (ws) => {
             return;
         }
 
-        // 解析并存储消息
-        let parsedMessage;
         try {
-            parsedMessage = JSON.parse(message);
             parsedMessage.timestamp = new Date().toISOString();
+            parsedMessage.id = `${parsedMessage.timestamp}-${Math.random()}`; // 添加唯一ID
             messageHistory.push(parsedMessage);
             
             // 广播消息给所有客户端
@@ -70,7 +76,7 @@ wss.on('connection', (ws) => {
                 }
             });
         } catch (error) {
-            console.error('消息解析错误:', error);
+            console.error('消息处理错误:', error);
         }
     });
 
